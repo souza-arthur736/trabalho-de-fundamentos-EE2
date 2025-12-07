@@ -5,7 +5,7 @@
 - Arthur Filipe  
 - Eduardo Emanuel  
 - Fábio Henrique  
-- Gabriel de Oliveira  
+- Gabriel Guedes 
 
 ---
 
