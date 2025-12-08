@@ -15,16 +15,16 @@ CIMA = 0
 DIREITA = 1
 BAIXO = 2
 ESQUERDA = 3
-
+# Deslocamentos
 DX = [0, 1, 0, -1]
 DY = [1, 0, -1, 0]
 
 # Criação da matriz
 N = 16
 
-maze = [[[False]*4 for _ in range(N)] for _ in range(N)] #False = sem parede
-visited = [[False]*N for _ in range(N)] 
-dist = np.zeros((N,N)) #distancia ao objetivo no FF
+maze = [[[False]*4 for _ in range(N)] for _ in range(N)] #False = sem parede. Essa matriz irá compor as posições das paredes
+visited = [[False]*N for _ in range(N)] #False = Não visitado (de início). Marca se a célula foi visitada na primeira exploração.
+dist = np.zeros((N,N))
 
 #vê se a posição x,y está dentro do labirinto para evitar bugs
 def dentro(x,y): 
@@ -42,7 +42,7 @@ def marcar_paredes(x, y, d):
         maze[x][y][df] = True
         nx, ny = x + DX[df], y + DY[df]
         if dentro(nx,ny):
-            maze[nx][ny][(df+2)%4] = True
+            maze[nx][ny][(df+2)%4] = True #Atualiza a outra parede, evita bugs
 
     #Aqui o % 4 mantém os valores entre 0,1,2 e 3 (as direções possíveis do labirinto)
     # Esquerda
@@ -64,8 +64,8 @@ def marcar_paredes(x, y, d):
 #implementação do FF
 def floodfill_dist(objetivos):
     global dist
-    dist = np.full((N,N), 9999, dtype=int)  # Coloca todos os valores da matriz como 9999. Escolhemos um valor grande para evitar bugs
-    fila = deque()
+    dist = np.full((N,N), 9999, dtype=int)  # Coloca todos os valores da matriz como 9999, menos o centro que é 0. Escolhemos um valor grande para evitar bugs
+    fila = deque() #usado no FF, sistema FIFO
 
     for (ax,ay) in objetivos:
         dist[ax][ay] = 0
@@ -120,9 +120,9 @@ def escolher_movimento_flood(x, y, d):
         if dentro(nx,ny) and dist[nx][ny] < melhor_dist:
             melhor_dist = dist[nx][ny]
             melhor = nd
-
+    #se todos os vizinhos estiverem bloqueados (dead end) dá meia volta
     if melhor is None:
-        return (d+2)%4 #direção 0 1 2 ou 3
+        return (d+2)%4
     return melhor
 
 
@@ -143,7 +143,7 @@ def executar_run1():
 
     modo = "WF"  #WF:wall follower. 
     antigos_v = 0
-    passos_sem_novidade = 0
+    passos_sem_novidade = 0 #usado para alternar entre WF e FF
 
     total_passos = 0
     limite_recalculo = 10
@@ -152,7 +152,7 @@ def executar_run1():
     while True:
         #Checa paredes e verifica se os passos são novos ou não, marcando todo o labirinto
         marcar_paredes(x,y,d)
-        novos = sum(sum(1 for v in row if v) for row in visited)
+        novos = sum(sum(1 for v in row if v) for row in visited) #Sempre checando se as posições são novas ou não
         if novos == antigos_v:
             passos_sem_novidade += 1
         else:
@@ -181,11 +181,11 @@ def executar_run1():
         d = girar_para(d, nd)
         marcar_paredes(x,y,d)
         x2,y2,d2,ok = passo_seguro_frente(x,y,d)
-
+        #Controle de bugs
         if not ok:
             tentativas_recalculo += 1
             if tentativas_recalculo > limite_recalculo:
-                log("Múltiplas divergências – parando RUN 1.")
+                log("Erro: parando RUN 1.")
                 break
             floodfill_dist([(7,7),(7,8),(8,7),(8,8)])
             continue
@@ -207,11 +207,11 @@ def executar_run1():
 
     return x,y,d
 
-
+#Função com nome autoexplicativa
 def retornar_ao_inicio(x,y,d):
     log("Voltando ao início")
 
-    floodfill_dist([(0,0)])
+    floodfill_dist([(0,0)]) #FF até a posição 0,0 (inicio)
 
     passos = 0
     while (x,y) != (0,0):
@@ -236,18 +236,18 @@ def retornar_ao_inicio(x,y,d):
     log("Retorno concluído.")
     return x,y,d
 
-
+#Aqui definimos a RUN 2
 def executar_run2(start_dir):
     log("RUN 2 – Executando melhor caminho")
 
     x,y = 0,0
-    d = start_dir
-    floodfill_dist([(7,7),(7,8),(8,7),(8,8)])
+    d = start_dir 
+    floodfill_dist([(7,7),(7,8),(8,7),(8,8)]) #FF até o centro
 
     passos = 0
     limite_recalculo = 10
     tentativas_recalculo = 0
-
+    #FF
     while True:
         nd = escolher_movimento_flood(x,y,d)
         d = girar_para(d, nd)
